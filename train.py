@@ -1,3 +1,4 @@
+import argparse
 import torch
 import wandb
 
@@ -43,7 +44,7 @@ def episodes(env, policy, n):
     return storage.get_all()
 
 
-def train(num_episodes, samples, vis_iter, seed=0, log=False):
+def train(num_episodes, samples, lr, vis_iter, seed=0, log=False):
     torch.manual_seed(seed)
 
     # create env and models
@@ -101,12 +102,16 @@ def train(num_episodes, samples, vis_iter, seed=0, log=False):
 
 
 if __name__ == '__main__':
-    lr = 1e-3
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--episodes', type=int, default=2000)
+    parser.add_argument('--samples', type=int, default=10)
+    args = parser.parse_args()
 
     #! test 'Standard' with lr=3e-4
 
     for seed in [2542, 7240, 1187, 2002, 2924]:
         for update in ['HJB', 'TD']:
             wandb.init(project='Continuity-Experiments', group=update, name=str(seed), reinit=True)
-            train(num_episodes=1500, samples=10, vis_iter=10, seed=seed, log=True)
+            train(num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=seed, log=True)
             wandb.join()
