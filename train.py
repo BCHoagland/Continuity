@@ -19,7 +19,7 @@ def batch_grad(fn, inp):
 
     inp.requires_grad = True
     out = fn(inp)
-    out.backward(torch.ones(batch_size, 1))
+    out.backward(torch.ones(batch_size, 1).to(device))
     return inp.grad
 
 
