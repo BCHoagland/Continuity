@@ -99,7 +99,8 @@ def train(num_episodes, samples, vis_iter, seed=0, log=False):
 if __name__ == '__main__':
     lr = 1e-3
 
-    for update in ['HJB', 'TD', 'Standard']:
-        wandb.init(project='Continuity-Experiments', group='PG', name=update, reinit=True)
-        train(num_episodes=2000, samples=10, vis_iter=10, log=True)
-        wandb.join()
+    for seed in [2542, 7240, 1187, 2002, 2924]:
+        for update in ['HJB', 'TD']:
+            wandb.init(project='Continuity-Experiments', group=update, name=str(seed), reinit=True)
+            train(num_episodes=1500, samples=10, vis_iter=10, seed=seed, log=True)
+            wandb.join()
