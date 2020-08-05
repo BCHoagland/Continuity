@@ -6,6 +6,9 @@ from models import CategoricalPolicy, Value
 from storage import Storage
 
 
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+
 def batch_dot(x, y):
     vector_len = x.shape[1]
     return torch.bmm(x.view(-1, 1, vector_len), y.view(-1, vector_len, 1)).view(-1, 1)
@@ -45,8 +48,8 @@ def train(num_episodes, samples, vis_iter, seed=0, log=False):
 
     # create env and models
     env = Env('CartPole-v1', seed=0)
-    policy = CategoricalPolicy(lr)
-    V = Value(lr, target=True)
+    policy = CategoricalPolicy(lr).to(device)
+    V = Value(lr, target=True).to(device)
 
     if not log:
         from visualize import plot_live
@@ -57,11 +60,12 @@ def train(num_episodes, samples, vis_iter, seed=0, log=False):
         m = 1 - done
 
         # calculate returns
-        returns = [0] * len(c.tolist())
+        returns = [0] * len(c.cpu().tolist())
         discounted_next = 0
         for i in reversed(range(len(c))):
             returns[i] = c[i] + discounted_next
-            discounted_next = 0.99 * returns[i] * m[i - 1]
+            # discounted_next = 0.99 * returns[i] * m[i - 1]
+            discounted_next = returns[i] * m[i - 1]
         returns = torch.stack(returns)
 
         # improve value function estimator
@@ -91,13 +95,15 @@ def train(num_episodes, samples, vis_iter, seed=0, log=False):
         # report progress
         if ep % vis_iter == vis_iter - 1:
             if log:
-                wandb.log({'Average episodic cost': sum(c).item() / samples}, step=ep)
+                wandb.log({'Average episodic cost': sum(c).cpu().item() / samples}, step=ep)
             else:
-                plot_live(ep, sum(c).item() / samples)
+                plot_live(ep, sum(c).cpu().item() / samples)
 
 
 if __name__ == '__main__':
     lr = 1e-3
+
+    #! test 'Standard' with lr=3e-4
 
     for seed in [2542, 7240, 1187, 2002, 2924]:
         for update in ['HJB', 'TD']:
