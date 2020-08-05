@@ -11,7 +11,7 @@ class Env:
         self.env.seed(seed)
 
     def reset(self):
-        return torch.FloatTensor(self.env.reset())
+        return torch.FloatTensor(self.env.reset()).to(device)
 
     def step(self, a):
         s, r, done, _ = self.env.step(a.cpu().numpy())
