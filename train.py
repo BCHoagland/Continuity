@@ -44,7 +44,7 @@ def episodes(env, policy, n):
     return storage.get_all()
 
 
-def train(num_episodes, samples, lr, vis_iter, seed=0, log=False):
+def train(update, num_episodes, samples, lr, vis_iter, seed=0, log=False):
     torch.manual_seed(seed)
 
     # create env and models
@@ -70,28 +70,29 @@ def train(num_episodes, samples, lr, vis_iter, seed=0, log=False):
         returns = torch.stack(returns)
 
         # improve value function estimator
-        with torch.no_grad():
-            # value_target = c + V.target(s2)
-            value_target = returns
-        value_loss = ((value_target - V(s)) ** 2).mean()
+        value_loss = ((returns - V(s)) ** 2).mean()
         V.minimize(value_loss)
 
         # calculate and normalize advantage
         if update == 'HJB':
-            adv = (c + batch_dot(s2 - s, batch_grad(V, s))).detach()
+            adv = c + batch_dot(s2 - s, batch_grad(V, s))
         elif update == 'TD':
-            adv = (c + V(s2) - V(s)).detach()
+            # adv = c + V.target(s2) - V(s)
+            adv = c + V(s2) - V(s)
         elif update == 'Standard':
             adv = returns - V(s)
         else:
             raise ValueError(f'{update} is not a known update')
 
-        adv = (adv - adv.mean()) / adv.std()
+        adv = (adv.detach() - adv.mean()) / adv.std()
 
         # improve policy
         log_prob = policy.log_prob(s, a)
         obj = (adv * log_prob).mean()
         policy.minimize(obj)
+
+        # update target networks
+        # V.soft_update_target()
 
         # report progress
         if ep % vis_iter == vis_iter - 1:
@@ -105,13 +106,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--episodes', type=int, default=2000)
-    parser.add_argument('--samples', type=int, default=10)
+    parser.add_argument('--samples', type=int, default=2)
     args = parser.parse_args()
 
     #! test 'Standard' with lr=3e-4
 
+    #! GPU runs might not be deterministic
+
     for seed in [2542, 7240, 1187, 2002, 2924]:
         for update in ['HJB', 'TD']:
             wandb.init(project='Continuity-Experiments', group=update, name=str(seed), reinit=True)
-            train(num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=seed, log=True)
+            train(update=update, num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=seed, log=True)
             wandb.join()

@@ -8,6 +8,8 @@ n_s = 4
 n_h = 32
 n_a = 2
 
+τ = 0.995
+
 
 class Model(nn.Module):
     def __init__(self, lr, target):
@@ -21,6 +23,10 @@ class Model(nn.Module):
 
     def target(self, *args):
         return self.target_model(*args)
+
+    def soft_update_target(self):
+        for param, target_param in zip(self.parameters(), self.target_model.parameters()):
+            target_param.data.copy_((τ * target_param.data) + ((1 - τ) * param.data))
 
     def _optimize(self, loss):
         if self.optimizer is None:
