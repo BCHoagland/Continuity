@@ -31,7 +31,7 @@ def Q_update(storage, policy, Q, batch_size):
     policy.soft_update_target()
 
 
-def train(policy_class, env_name, actors, num_timesteps, lr, batch_size, vis_iter, seed=0, log=False):
+def train(policy_class, env_name, actors, num_timesteps, lr, noise, batch_size, vis_iter, seed=0, log=False):
     torch.manual_seed(seed)
     random.seed(seed)
 
@@ -58,7 +58,7 @@ def train(policy_class, env_name, actors, num_timesteps, lr, batch_size, vis_ite
         # interact with env
         with torch.no_grad():
             a = policy(s)
-            a = (a + torch.randn_like(a) * 0.3).clamp(-2., 2.)
+            a = (a + torch.randn_like(a) * noise).clamp(-2., 2.)
         s2, c, done = env.step(a)
         storage.store((s, a, c, s2, done))
 
@@ -88,9 +88,10 @@ if __name__ == '__main__':
     parser.add_argument('--timesteps', type=int, default=1e5)
     parser.add_argument('--batch', type=int, default=128)
     parser.add_argument('--actors', type=int, default=8)
+    parser.add_argument('--noise', type=float, default=0.5)
     args = parser.parse_args()
 
     for seed in [2542, 7240, 1187, 2002, 2924]:
         wandb.init(project='Pendulum', group='Q-Learning', name=str(seed), reinit=True)
-        train(policy_class=DeterministicPolicy, env_name='Pendulum-v0', actors=args.actors, num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        train(policy_class=DeterministicPolicy, env_name='Pendulum-v0', actors=args.actors, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
