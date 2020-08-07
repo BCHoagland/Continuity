@@ -4,22 +4,19 @@ import torch.nn as nn
 # from torch.distributions import Normal
 from torch.distributions import Categorical
 
-n_s = 4
 n_h = 32
-n_a = 2
-
 τ = 0.995
 
 
 class Model(nn.Module):
-    def __init__(self, lr, target):
+    def __init__(self, lr, *sizes, target):
         super().__init__()
 
         self.optimizer = None
         self.lr = lr
 
         if target:
-            self.target_model = self.__class__(lr, False)
+            self.target_model = self.__class__(lr, *sizes, target=False)
 
     def target(self, *args):
         return self.target_model(*args)
@@ -44,8 +41,8 @@ class Model(nn.Module):
 
 
 class CategoricalPolicy(Model):
-    def __init__(self, lr, target=False):
-        super().__init__(lr, target)
+    def __init__(self, lr, n_s, n_a, target=False):
+        super().__init__(lr, n_s, n_a, target=target)
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
@@ -67,9 +64,25 @@ class CategoricalPolicy(Model):
         return self.dist(s).log_prob(a)
 
 
+class DeterministicPolicy(Model):
+    def __init__(self, lr, n_s, n_a, target=False):
+        super().__init__(lr, n_s, n_a, target=target)
+
+        self.main = nn.Sequential(
+            nn.Linear(n_s, n_h),
+            nn.Tanh(),
+            nn.Linear(n_h, n_h),
+            nn.Tanh(),
+            nn.Linear(n_h, n_a)
+        )
+
+    def forward(self, s):
+        return self.main(s)
+
+
 class Value(Model):
-    def __init__(self, lr, target=False):
-        super().__init__(lr, target)
+    def __init__(self, lr, n_s, target=False):
+        super().__init__(lr, n_s, target=target)
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
@@ -81,3 +94,19 @@ class Value(Model):
 
     def forward(self, s):
         return self.main(s)
+
+
+class QNetwork(Model):
+    def __init__(self, lr, n_s, n_a, target=False):
+        super().__init__(lr, n_s, n_a, target=target)
+
+        self.main = nn.Sequential(
+            nn.Linear(n_s + n_a, n_h),
+            nn.ReLU(),
+            nn.Linear(n_h, n_h),
+            nn.ReLU(),
+            nn.Linear(n_h, 1)
+        )
+
+    def forward(self, s, a):
+        return self.main(torch.cat([s, a], dim=-1))

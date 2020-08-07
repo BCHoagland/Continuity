@@ -3,7 +3,7 @@ import torch
 import wandb
 
 from env import Env
-from models import CategoricalPolicy, Value
+from models import CategoricalPolicy, DeterministicPolicy, Value
 from storage import Storage
 
 
@@ -44,13 +44,17 @@ def episodes(env, policy, n):
     return storage.get_all()
 
 
-def train(update, num_episodes, samples, lr, vis_iter, seed=0, log=False):
+def train(update, env_name, num_episodes, samples, lr, vis_iter, seed=0, log=False):
     torch.manual_seed(seed)
 
     # create env and models
-    env = Env('CartPole-v1', seed=0)
-    policy = CategoricalPolicy(lr).to(device)
-    V = Value(lr, target=True).to(device)
+    env = Env(env_name, seed=0)
+
+    n_s = env.state_dim()
+    n_a = env.action_dim()
+
+    policy = CategoricalPolicy(lr, n_s, n_a).to(device)
+    V = Value(lr, n_s, target=False).to(device)
 
     if not log:
         from visualize import plot_live
@@ -113,8 +117,10 @@ if __name__ == '__main__':
 
     #! GPU runs might not be deterministic
 
-    for seed in [2542, 7240, 1187, 2002, 2924]:
-        for update in ['HJB', 'TD']:
-            wandb.init(project='Continuity-Experiments', group=update, name=str(seed), reinit=True)
-            train(update=update, num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=seed, log=True)
-            wandb.join()
+    # for seed in [2542, 7240, 1187, 2002, 2924]:
+    #     for update in ['HJB', 'TD']:
+    #         wandb.init(project='Continuity-Experiments', group=update, name=str(seed), reinit=True)
+    #         train(update=update, num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=seed, log=True)
+    #         wandb.join()
+
+    train(update='TD', env_name='CartPole-v1', num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=0, log=False)
