@@ -90,6 +90,5 @@ if __name__ == '__main__':
 
     for seed in [2542, 7240, 1187, 2002, 2924]:
         wandb.init(project='Pendulum', group='Q-Learning', name=str(seed), reinit=True)
-        train(policy_class=DeterministicPolicy, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=False)
-        train(update=update, num_episodes=args.episodes, samples=args.samples, lr=args.lr, vis_iter=10, seed=seed, log=True)
+        train(policy_class=DeterministicPolicy, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
