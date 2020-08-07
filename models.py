@@ -4,7 +4,7 @@ import torch.nn as nn
 # from torch.distributions import Normal
 from torch.distributions import Categorical
 
-n_h = 32
+n_h = 64
 τ = 0.995
 
 

@@ -4,10 +4,10 @@ import numpy as np
 from collections import deque
 
 
-def fix_size(x):
+def fix_size(x, dim):
     x = x.squeeze()
     while len(x.shape) < 2:
-        x = x.unsqueeze(0)
+        x = x.unsqueeze(dim)
     return x
 
 
@@ -20,11 +20,13 @@ class Storage:
 
     def store(self, data):
         '''stores a single group of data'''
-        data = [fix_size(x) for x in data]
+        data = [fix_size(x, dim=-1) for x in data]
 
-        batch_size = data[0].shape[0]
-        for i in range(batch_size):
-            transition = tuple(fix_size(data[j][i]) for j in range(len(data)))
+        num_transitions = data[0].shape[0]
+        elements_per_transition = len(data)
+
+        for i in range(num_transitions):
+            transition = tuple(fix_size(data[j][i], dim=0) for j in range(elements_per_transition))
             self.buffer.append(transition)
     
     def get(self, batch):

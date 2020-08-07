@@ -1,5 +1,6 @@
 import argparse
 import torch
+import random
 import wandb
 
 from env import Env
@@ -30,11 +31,12 @@ def Q_update(storage, policy, Q, batch_size):
     policy.soft_update_target()
 
 
-def train(policy_class, env_name, num_timesteps, lr, batch_size, vis_iter, seed=0, log=False):
+def train(policy_class, env_name, actors, num_timesteps, lr, batch_size, vis_iter, seed=0, log=False):
     torch.manual_seed(seed)
+    random.seed(seed)
 
     # create env and models
-    env = Env(env_name, seed=seed)
+    env = Env(env_name, seed=seed, n=actors)
 
     n_s = env.state_dim()
     n_a = env.action_dim()
@@ -48,37 +50,36 @@ def train(policy_class, env_name, num_timesteps, lr, batch_size, vis_iter, seed=
         from visualize import plot_live
 
     # training loop
-    last_ep_cost = 0
-    ep_cost = 0
+    last_ep_cost = torch.zeros(actors, 1)
+    ep_cost = torch.zeros(actors, 1)
+
     s = env.reset()
     for step in range(int(num_timesteps)):
         # interact with env
         with torch.no_grad():
             a = policy(s)
-            a = (a + torch.randn_like(a) * 0.5).clamp(-2., 2.)
+            a = (a + torch.randn_like(a) * 0.3).clamp(-2., 2.)
         s2, c, done = env.step(a)
         storage.store((s, a, c, s2, done))
 
         # cost bookkeeping
-        ep_cost += c.item()
+        ep_cost += c
+        mask = 1 - done
+        last_ep_cost = (last_ep_cost * mask) + (done * ep_cost)
+        ep_cost *= mask
 
         # update models
         Q_update(storage, policy, Q, batch_size)
 
-        # transition to next state + cost bookkeeping
-        if done:
-            last_ep_cost = ep_cost
-            ep_cost = 0
-            s = env.reset()
-        else:
-            s = s2
+        # transition to next state
+        s = env.next_step(s2, done)
 
         # report progress
         if step % vis_iter == vis_iter - 1:
             if log:
-                wandb.log({'Average episodic cost': last_ep_cost}, step=step)
+                wandb.log({'Average episodic cost': last_ep_cost.mean().item()}, step=step)
             else:
-                plot_live(step, last_ep_cost)
+                plot_live(step, last_ep_cost.mean().item())
 
 
 if __name__ == '__main__':
@@ -86,9 +87,10 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--timesteps', type=int, default=1e5)
     parser.add_argument('--batch', type=int, default=128)
+    parser.add_argument('--actors', type=int, default=8)
     args = parser.parse_args()
 
     for seed in [2542, 7240, 1187, 2002, 2924]:
         wandb.init(project='Pendulum', group='Q-Learning', name=str(seed), reinit=True)
-        train(policy_class=DeterministicPolicy, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        train(policy_class=DeterministicPolicy, env_name='Pendulum-v0', actors=args.actors, num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
