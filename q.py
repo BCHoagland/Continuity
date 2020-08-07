@@ -50,8 +50,8 @@ def train(policy_class, env_name, actors, num_timesteps, lr, batch_size, vis_ite
         from visualize import plot_live
 
     # training loop
-    last_ep_cost = torch.zeros(actors, 1)
-    ep_cost = torch.zeros(actors, 1)
+    last_ep_cost = torch.zeros(actors, 1).to(device)
+    ep_cost = torch.zeros(actors, 1).to(device)
 
     s = env.reset()
     for step in range(int(num_timesteps)):
@@ -77,9 +77,9 @@ def train(policy_class, env_name, actors, num_timesteps, lr, batch_size, vis_ite
         # report progress
         if step % vis_iter == vis_iter - 1:
             if log:
-                wandb.log({'Average episodic cost': last_ep_cost.mean().item()}, step=step)
+                wandb.log({'Average episodic cost': last_ep_cost.mean().cpu().item()}, step=step)
             else:
-                plot_live(step, last_ep_cost.mean().item())
+                plot_live(step, last_ep_cost.mean().cpu().item())
 
 
 if __name__ == '__main__':
