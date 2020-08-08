@@ -4,31 +4,22 @@ import torch.nn as nn
 # from torch.distributions import Normal
 from torch.distributions import Categorical
 
+
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
 n_h = 64
 τ = 0.995
 
 
-class Model(nn.Module):
-    def __init__(self, lr, *sizes, target):
-        super().__init__()
-
-        self.optimizer = None
-        self.lr = lr
-
+class Model:
+    def __init__(self, model_type, lr, *args, target=False):
+        self.model = model_type(*args).to(device)
         if target:
-            self.target_model = self.__class__(lr, *sizes, target=False)
-
-    def target(self, *args):
-        return self.target_model(*args)
-
-    def soft_update_target(self):
-        for param, target_param in zip(self.parameters(), self.target_model.parameters()):
-            target_param.data.copy_((τ * target_param.data) + ((1 - τ) * param.data))
+            self.target_model = model_type(*args).to(device)
+            self.target_model.load_state_dict(self.model.state_dict())
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
 
     def _optimize(self, loss):
-        if self.optimizer is None:
-            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -39,10 +30,27 @@ class Model(nn.Module):
     def minimize(self, loss):
         self._optimize(loss)
 
+    def target(self, *args):
+        with torch.no_grad():
+            return self.target_model(*args)
 
-class CategoricalPolicy(Model):
-    def __init__(self, lr, n_s, n_a, target=False):
-        super().__init__(lr, n_s, n_a, target=target)
+    def log_prob(self, *args):
+        return self.model.log_prob(*args)
+
+    def __getattr__(self, k):
+        return getattr(self.model, k)
+
+    def __call__(self, *args):
+        return self.model(*args)
+
+    def soft_update_target(self):
+        for param, target_param in zip(self.model.parameters(), self.target_model.parameters()):
+            target_param.data.copy_((τ * target_param.data) + ((1 - τ) * param.data))
+
+
+class CategoricalPolicy(nn.Module):
+    def __init__(self, n_s, n_a):
+        super().__init__()
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
@@ -64,9 +72,9 @@ class CategoricalPolicy(Model):
         return self.dist(s).log_prob(a)
 
 
-class DeterministicPolicy(Model):
-    def __init__(self, lr, n_s, n_a, target=False):
-        super().__init__(lr, n_s, n_a, target=target)
+class DeterministicPolicy(nn.Module):
+    def __init__(self, n_s, n_a):
+        super().__init__()
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
@@ -80,9 +88,9 @@ class DeterministicPolicy(Model):
         return self.main(s)
 
 
-class Value(Model):
-    def __init__(self, lr, n_s, target=False):
-        super().__init__(lr, n_s, target=target)
+class Value(nn.Module):
+    def __init__(self, n_s):
+        super().__init__()
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
@@ -96,17 +104,29 @@ class Value(Model):
         return self.main(s)
 
 
-class QNetwork(Model):
-    def __init__(self, lr, n_s, n_a, target=False):
-        super().__init__(lr, n_s, n_a, target=target)
+class QNetwork(nn.Module):
+    def __init__(self, n_s, n_a):
+        super().__init__()
+
+        self.pre_state = nn.Sequential(
+            nn.Linear(n_s, n_h),
+            nn.ELU(),
+            nn.Linear(n_h, n_h // 2),
+            nn.ELU()
+        )
+
+        self.pre_action = nn.Sequential(
+            nn.Linear(n_a, n_h // 2),
+            nn.ELU()
+        )
 
         self.main = nn.Sequential(
-            nn.Linear(n_s + n_a, n_h),
-            nn.ReLU(),
             nn.Linear(n_h, n_h),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(n_h, 1)
         )
 
     def forward(self, s, a):
+        s = self.pre_state(s)
+        a = self.pre_action(a)
         return self.main(torch.cat([s, a], dim=-1))

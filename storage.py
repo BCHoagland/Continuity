@@ -20,7 +20,7 @@ class Storage:
 
     def store(self, data):
         '''stores a single group of data'''
-        data = [fix_size(x, dim=-1) for x in data]
+        data = [fix_size(x, dim=0) for x in data]
 
         num_transitions = data[0].shape[0]
         elements_per_transition = len(data)
