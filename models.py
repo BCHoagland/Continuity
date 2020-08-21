@@ -78,14 +78,30 @@ class DeterministicPolicy(nn.Module):
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
-            nn.Tanh(),
+            nn.ELU(),
             nn.Linear(n_h, n_h),
-            nn.Tanh(),
+            nn.ELU(),
             nn.Linear(n_h, n_a)
         )
 
     def forward(self, s):
         return self.main(s)
+
+
+class Dynamics(nn.Module):
+    def __init__(self, n_s, n_a):
+        super().__init__()
+
+        self.main = nn.Sequential(
+            nn.Linear(n_s + n_a, n_h),
+            # nn.ELU(),
+            # nn.Linear(n_h, n_h),
+            # nn.ELU(),
+            nn.Linear(n_h, n_s)
+        )
+
+    def forward(self, s, a):
+        return self.main(torch.cat([s, a], dim=-1))
 
 
 class Value(nn.Module):
@@ -94,9 +110,9 @@ class Value(nn.Module):
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
-            nn.Tanh(),
+            nn.ELU(),
             nn.Linear(n_h, n_h),
-            nn.Tanh(),
+            nn.ELU(),
             nn.Linear(n_h, 1)
         )
 
@@ -108,25 +124,34 @@ class QNetwork(nn.Module):
     def __init__(self, n_s, n_a):
         super().__init__()
 
-        self.pre_state = nn.Sequential(
-            nn.Linear(n_s, n_h),
+        # self.pre_state = nn.Sequential(
+        #     nn.Linear(n_s, n_h),
+        #     nn.ELU(),
+        #     nn.Linear(n_h, n_h // 2),
+        #     nn.ELU()
+        # )
+
+        # self.pre_action = nn.Sequential(
+        #     nn.Linear(n_a, n_h // 2),
+        #     nn.ELU()
+        # )
+
+        # self.main = nn.Sequential(
+        #     nn.Linear(n_h, n_h),
+        #     nn.ELU(),
+        #     nn.Linear(n_h, 1)
+        # )
+
+        self.bruh = nn.Sequential(
+            nn.Linear(n_s + n_a, n_h),
             nn.ELU(),
-            nn.Linear(n_h, n_h // 2),
-            nn.ELU()
-        )
-
-        self.pre_action = nn.Sequential(
-            nn.Linear(n_a, n_h // 2),
-            nn.ELU()
-        )
-
-        self.main = nn.Sequential(
             nn.Linear(n_h, n_h),
             nn.ELU(),
             nn.Linear(n_h, 1)
         )
 
     def forward(self, s, a):
-        s = self.pre_state(s)
-        a = self.pre_action(a)
-        return self.main(torch.cat([s, a], dim=-1))
+        # s = self.pre_state(s)
+        # a = self.pre_action(a)
+        # return self.main(torch.cat([s, a], dim=-1))
+        return self.bruh(torch.cat([s, a], dim=-1))
