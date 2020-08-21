@@ -77,6 +77,7 @@ class HJB:
     def interact(self, s, env):
         a = self.policy(s)
         s2, c, done = env.step(a)
+        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
         return s, a, c, s2, done
 
     def update(self, storage, batch_size):
@@ -84,11 +85,10 @@ class HJB:
         m = 1 - done
 
         # improve Q function estimator
-        #! ensure gradients are *not* tracked for these two \/ (unless...)
-        #? can I get rid of evaluating Q(s,a) altogether by directly optimizing s_grad and a_grad????
         s_grad, a_grad = batch_grad(self.Q, s, a)
         with torch.no_grad():
-            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
+            # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
+            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
             q_target = c + self.Q.target(s,a) + m * 0.99 * future
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
         self.Q.minimize(q_loss)
@@ -118,14 +118,9 @@ class HJB2:
         m = 1 - done
 
         # improve Q function estimator
-        #! ensure gradients are *not* tracked for these two \/ (unless...)
-        #? can I get rid of evaluating Q(s,a) altogether by directly optimizing s_grad and a_grad????
         s_grad, a_grad = batch_grad(self.Q, s, a)
-        with torch.no_grad():
-            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
-            q_target = c + self.Q.target(s,a) + m * 0.99 * future
-        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
-        self.Q.minimize(q_loss)
+        obj = (c + batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)).mean()
+        self.Q.minimize(obj)
 
         # improve policy
         policy_loss = self.Q(s, self.policy(s)).mean()
@@ -190,17 +185,15 @@ def train(algo, env_name, num_timesteps, lr, batch_size, vis_iter, seed=0, log=F
                 plot_live(step, last_ep_cost)
 
 
+#! ARE THE OUTPUTS FROM THE POLICY IN THE RIGHT RANGE IN THE FIRST PLACE? SHOULD I BE USING TANH NON-LINEARITIES?
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--timesteps', type=int, default=2e4)
+    parser.add_argument('--timesteps', type=int, default=3e4)
     parser.add_argument('--batch', type=int, default=128)
     # parser.add_argument('--actors', type=int, default=8)
     # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
-
-    # train(algo=HJB2, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=10, log=False)
-    # quit()
 
     for seed in [7329, 9643, 6541, 6563]:
         # wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
@@ -209,4 +202,8 @@ if __name__ == '__main__':
 
         wandb.init(project='Pendulum', group='HJB', name=str(seed), reinit=True)
         train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        wandb.join()
+
+        wandb.init(project='Pendulum', group='HJB2', name=str(seed), reinit=True)
+        train(algo=HJB2, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
