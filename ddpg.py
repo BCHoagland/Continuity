@@ -85,7 +85,7 @@ class HJB:
         m = 1 - done
 
         # improve Q function estimator
-        s_grad, a_grad = batch_grad(self.Q, s, a)
+        s_grad, a_grad = batch_grad(self.Q.target, s, a)
         with torch.no_grad():
             # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
             future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
@@ -121,7 +121,7 @@ class HJB_greedy:
         s_grad, a_grad = batch_grad(self.Q, s, a)
         with torch.no_grad():
             future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
-            q_target = c + self.Q(s,a) + m * 0.99 * future
+            q_target = c + self.Q.target(s,a) + m * 0.99 * future
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
         self.Q.minimize(q_loss)
 
@@ -211,8 +211,8 @@ if __name__ == '__main__':
 
     # algos = [DDPG, HJB, HJB_greedy]
     # groups = ['DDPG', 'HJB', 'HJB-greedy']
-    algos = [HJB_greedy]
-    groups = ['HJB-greedy']
+    algos = [HJB]
+    groups = ['HJB-normal']
 
     for algo, group in zip(algos, groups):
         for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
