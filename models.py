@@ -78,14 +78,32 @@ class DeterministicPolicy(nn.Module):
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
-            nn.ELU(),
+            nn.Tanh(),
             nn.Linear(n_h, n_h),
-            nn.ELU(),
-            nn.Linear(n_h, n_a)
+            nn.Tanh(),
+            nn.Linear(n_h, n_a),
+            nn.Tanh()
         )
 
     def forward(self, s):
-        return self.main(s)
+        #! only works for pendulum
+        return self.main(s) * 2
+
+
+class RelativePolicy(nn.Module):
+    def __init__(self, n_s, n_a):
+        super().__init__()
+
+        self.main = nn.Sequential(
+            nn.Linear(n_s + n_a, n_h),
+            nn.Tanh(),
+            nn.Linear(n_h, n_h),
+            nn.Tanh(),
+            nn.Linear(n_h, n_a)
+        )
+
+    def forward(self, s, a):
+        return self.main(torch.cat([s, a], dim=-1))
 
 
 class Dynamics(nn.Module):
@@ -94,9 +112,9 @@ class Dynamics(nn.Module):
 
         self.main = nn.Sequential(
             nn.Linear(n_s + n_a, n_h),
-            # nn.ELU(),
-            # nn.Linear(n_h, n_h),
-            # nn.ELU(),
+            nn.ELU(),
+            nn.Linear(n_h, n_h),
+            nn.ELU(),
             nn.Linear(n_h, n_s)
         )
 
