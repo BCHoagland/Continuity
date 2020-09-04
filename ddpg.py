@@ -116,6 +116,7 @@ class HJB:
         with torch.no_grad():
             # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
             future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
+            q_target = c + self.Q.target(s,a) + m * 0.99 * future
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
         self.Q.minimize(q_loss)
 
