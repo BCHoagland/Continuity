@@ -254,7 +254,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # python ddpg.py --timesteps 1e4
-    for seed in [7329, 9643, 6541, 6563]:
+    for seed in [7329, 9643, 6541, 5563, 6329, 8643, 3541, 4563, 1329, 2643]:
         wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
         train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
