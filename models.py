@@ -31,8 +31,7 @@ class Model:
         self._optimize(loss)
 
     def target(self, *args):
-        with torch.no_grad():
-            return self.target_model(*args)
+        return self.target_model(*args)
 
     def log_prob(self, *args):
         return self.model.log_prob(*args)
