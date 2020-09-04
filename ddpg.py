@@ -112,13 +112,53 @@ class HJB:
         m = 1 - done
 
         # improve Q function estimator
-        s_grad, a_grad = batch_grad(self.Q.target, s, a)
+        s_grad, a_grad = batch_grad(self.Q, s, a)
         with torch.no_grad():
             # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
             future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
             q_target = c + self.Q.target(s,a) + m * 0.99 * future
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
         self.Q.minimize(q_loss)
+
+        # improve policy
+        policy_loss = self.Q(s, self.policy(s)).mean()
+        self.policy.minimize(policy_loss)
+
+        # update target networks
+        self.Q.soft_update_target()
+        self.policy.soft_update_target()
+
+
+class HJB_regularize:
+    def create_models(self, lr, n_s, n_a):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
+        self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
+
+    def interact(self, s, env):
+        a = self.policy(s)
+        s2, c, done = env.step(a)
+        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
+        return s, a, c, s2, done
+
+    def update(self, storage, batch_size):
+        s, a, c, s2, done = storage.sample(batch_size)
+        m = 1 - done
+
+        # improve Q function estimator
+        s_grad_t, a_grad_t = batch_grad(self.Q.target, s, a)
+        with torch.no_grad():
+            del_s = s2 - s
+            del_a = self.policy.target(s2) - a
+
+            future_t = batch_dot(del_s, s_grad_t) + batch_dot(del_a, a_grad_t)
+            q_target = c + self.Q.target(s,a) + m * 0.99 * future_t
+        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
+        self.Q.minimize(q_loss)
+
+        # regularize Q function estimator
+        s_grad, a_grad = batch_grad(self.Q, s, a)
+        hjb = (c + self.Q(s,a) + batch_dot(del_s, s_grad) + batch_dot(del_a, a_grad) ** 2).mean()
+        self.Q.minimize(hjb)
 
         # improve policy
         policy_loss = self.Q(s, self.policy(s)).mean()
@@ -287,8 +327,8 @@ if __name__ == '__main__':
         # train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
         # wandb.join()
 
-        wandb.init(project='Pendulum', group='maybe', name=str(seed), reinit=True)
-        train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+        wandb.init(project='Pendulum', group='HJB-diff', name=str(seed), reinit=True)
+        train(algo=HJB_regularize, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
         wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
