@@ -69,6 +69,33 @@ class DDPG:
         self.policy.soft_update_target()
 
 
+class DDPG_no_target:
+    def create_models(self, lr, n_s, n_a):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a)
+        self.Q = Model(QNetwork, lr, n_s, n_a)
+
+    def interact(self, s, env):
+        a = self.policy(s)
+        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
+        s2, c, done = env.step(a)
+        return s, a, c, s2, done
+
+    def update(self, storage, batch_size):
+        s, a, c, s2, done = storage.sample(batch_size)
+        m = 1 - done
+
+        # improve Q function estimator
+        s_grad, a_grad = batch_grad(self.Q, s, a)
+        with torch.no_grad():
+            q_target = c + 0.99 * m * self.Q(s2, self.policy(s2))
+        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
+        self.Q.minimize(q_loss)
+
+        # improve policy
+        policy_loss = self.Q(s, self.policy(s)).mean()
+        self.policy.minimize(policy_loss)
+
+
 class HJB:
     def create_models(self, lr, n_s, n_a):
         self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
@@ -100,6 +127,34 @@ class HJB:
         # update target networks
         self.Q.soft_update_target()
         self.policy.soft_update_target()
+
+
+class HJB_no_target:
+    def create_models(self, lr, n_s, n_a):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a)
+        self.Q = Model(QNetwork, lr, n_s, n_a)
+
+    def interact(self, s, env):
+        a = self.policy(s)
+        s2, c, done = env.step(a)
+        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
+        return s, a, c, s2, done
+
+    def update(self, storage, batch_size):
+        s, a, c, s2, done = storage.sample(batch_size)
+        m = 1 - done
+
+        # improve Q function estimator
+        s_grad, a_grad = batch_grad(self.Q, s, a)
+        with torch.no_grad():
+            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy(s2)-a, a_grad)
+            q_target = c + self.Q(s,a) + m * 0.99 * future          #! get rid of the Q - Q????
+        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()            #!
+        self.Q.minimize(q_loss)
+
+        # improve policy
+        policy_loss = self.Q(s, self.policy(s)).mean()
+        self.policy.minimize(policy_loss)
 
 
 class HJB_Val:
@@ -255,12 +310,20 @@ if __name__ == '__main__':
 
     # python ddpg.py --timesteps 1e4
     for seed in [7329, 9643, 6541, 5563, 6329, 8643, 3541, 4563, 1329, 2643]:
-        wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
-        train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        # wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
+        # train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        # wandb.join()
+
+        # wandb.init(project='Pendulum', group='HJB', name=str(seed), reinit=True)
+        # train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        # wandb.join()
+
+        wandb.init(project='Pendulum', group='DDPG_no_target', name=str(seed), reinit=True)
+        train(algo=DDPG_no_target, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
 
-        wandb.init(project='Pendulum', group='HJB', name=str(seed), reinit=True)
-        train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        wandb.init(project='Pendulum', group='HJB_no_target', name=str(seed), reinit=True)
+        train(algo=HJB_no_target, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
