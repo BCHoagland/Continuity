@@ -130,7 +130,7 @@ class HJB_regularize:
 
         # regularize Q function estimator
         s_grad, a_grad = batch_grad(self.Q, s, a)
-        hjb = (c + self.Q(s,a) + batch_dot(del_s, s_grad) + batch_dot(del_a, a_grad) ** 2).mean()
+        hjb = (c + batch_dot(del_s, s_grad) + batch_dot(del_a, a_grad) ** 2).mean()
         self.Q.minimize(hjb)
 
         # improve policy
@@ -249,8 +249,10 @@ if __name__ == '__main__':
     # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
 
-    algos = [DDPG, HJB, HJB_regularize, HJB_greedy]
-    groups = ['DDPG', 'HJB', 'HJB-reg', 'HJB-greedy']
+    # algos = [DDPG, HJB, HJB_regularize, HJB_greedy]
+    # groups = ['DDPG', 'HJB', 'HJB-reg', 'HJB-greedy']
+    algos = [HJB_regularize, HJB_greedy]
+    groups = ['HJB-reg', 'HJB-greedy']
 
     for algo, group in zip(algos, groups):
         for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
