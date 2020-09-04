@@ -102,46 +102,6 @@ class HJB:
         self.policy.soft_update_target()
 
 
-class HJB_regularize:
-    def create_models(self, lr, n_s, n_a):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
-        self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
-
-    def interact(self, s, env):
-        a = self.policy(s)
-        s2, c, done = env.step(a)
-        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
-        return s, a, c, s2, done
-
-    def update(self, storage, batch_size):
-        s, a, c, s2, done = storage.sample(batch_size)
-        m = 1 - done
-
-        # improve Q function estimator
-        s_grad_t, a_grad_t = batch_grad(self.Q.target, s, a)
-        with torch.no_grad():
-            del_s = s2 - s
-            del_a = self.policy.target(s2) - a
-
-            future_t = batch_dot(del_s, s_grad_t) + batch_dot(del_a, a_grad_t)
-            q_target = c + self.Q.target(s,a) + m * 0.99 * future_t
-        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
-        self.Q.minimize(q_loss)
-
-        # regularize Q function estimator
-        s_grad, a_grad = batch_grad(self.Q, s, a)
-        hjb = (c + batch_dot(del_s, s_grad) + batch_dot(del_a, a_grad) ** 2).mean()
-        self.Q.minimize(hjb)
-
-        # improve policy
-        policy_loss = self.Q(s, self.policy(s)).mean()
-        self.policy.minimize(policy_loss)
-
-        # update target networks
-        self.Q.soft_update_target()
-        self.policy.soft_update_target()
-
-
 class HJB_greedy:
     def create_models(self, lr, n_s, n_a):
         self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
@@ -249,10 +209,10 @@ if __name__ == '__main__':
     # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
 
-    # algos = [DDPG, HJB, HJB_regularize, HJB_greedy]
-    # groups = ['DDPG', 'HJB', 'HJB-reg', 'HJB-greedy']
-    algos = [HJB_regularize, HJB_greedy]
-    groups = ['HJB-reg', 'HJB-greedy']
+    # algos = [DDPG, HJB, HJB_greedy]
+    # groups = ['DDPG', 'HJB', 'HJB-greedy']
+    algos = [HJB_greedy]
+    groups = ['HJB-greedy']
 
     for algo, group in zip(algos, groups):
         for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
