@@ -114,8 +114,8 @@ class HJB:
         # improve Q function estimator
         s_grad, a_grad = batch_grad(self.Q, s, a)
         with torch.no_grad():
-            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
-            # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
+            # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
+            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
             q_target = c + self.Q.target(s,a) + m * 0.99 * future
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
         self.Q.minimize(q_loss)
@@ -276,18 +276,19 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--timesteps', type=float, default=3e4)
     parser.add_argument('--batch', type=int, default=128)
+    parser.add_argument('--vis_iter', type=int, default=200)
     # parser.add_argument('--actors', type=int, default=8)
     # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
 
     # python ddpg.py --timesteps 1e4
     for seed in [7329, 9643, 6541, 5563, 6329, 8643, 3541, 4563, 1329, 2643]:
-        # wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
-        # train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
-        # wandb.join()
+        wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
+        train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+        wandb.join()
 
-        wandb.init(project='Pendulum', group='HJB_reduce', name=str(seed), reinit=True)
-        train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        wandb.init(project='Pendulum', group='HJB', name=str(seed), reinit=True)
+        train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
         wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
