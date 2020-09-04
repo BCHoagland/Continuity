@@ -249,23 +249,14 @@ if __name__ == '__main__':
     # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
 
-    # python ddpg.py --timesteps 1e4
-    for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
-        wandb.init(project='Pendulum2', group='DDPG', name=str(seed), reinit=True)
-        train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
-        wandb.join()
+    algos = [DDPG, HJB, HJB_regularize, HJB_greedy]
+    groups = ['DDPG', 'HJB', 'HJB-reg', 'HJB-greedy']
 
-        wandb.init(project='Pendulum2', group='Pendulum', name=str(seed), reinit=True)
-        train(algo=HJB_regularize, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
-        wandb.join()
-
-        wandb.init(project='Pendulum2', group='HJB-reg', name=str(seed), reinit=True)
-        train(algo=HJB_regularize, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
-        wandb.join()
-
-        wandb.init(project='Pendulum2', group='HJB-greedy', name=str(seed), reinit=True)
-        train(algo=HJB_greedy, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
-        wandb.join()
+    for algo, group in zip(algos, groups):
+        for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
+            wandb.init(project='Pendulum2', group=group, name=str(seed), reinit=True)
+            train(algo=algo, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+            wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
         # wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
