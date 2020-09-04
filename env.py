@@ -104,7 +104,7 @@ class PendulumEnv:
         with torch.no_grad():
             newthdot = thdot + (-3 * g / (2 * l) * np.sin(th + np.pi) + 3. / (m * l ** 2) * u) * dt
             newth = th + newthdot * dt
-            newthdot = np.clip(newthdot, -self.max_speed, self.max_speed)
+            newthdot = torch.clamp(newthdot, -self.max_speed, self.max_speed)
 
         # don't let episodes last too long
         self.timesteps += 1
