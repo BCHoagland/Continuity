@@ -72,8 +72,10 @@ class CategoricalPolicy(nn.Module):
 
 
 class DeterministicPolicy(nn.Module):
-    def __init__(self, n_s, n_a):
+    def __init__(self, n_s, n_a, action_space):
         super().__init__()
+
+        self.high = torch.FloatTensor(action_space.high)
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),
@@ -85,8 +87,7 @@ class DeterministicPolicy(nn.Module):
         )
 
     def forward(self, s):
-        #! only works for pendulum
-        return self.main(s) * 2
+        return self.main(s) * self.high
 
 
 class RelativePolicy(nn.Module):

@@ -39,8 +39,8 @@ def explore(timesteps, env, storage):
 
 
 class DDPG:
-    def create_models(self, lr, n_s, n_a):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
+    def create_models(self, lr, n_s, n_a, action_space):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
     def interact(self, s, env):
@@ -70,8 +70,8 @@ class DDPG:
 
 
 class HJB:
-    def create_models(self, lr, n_s, n_a):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
+    def create_models(self, lr, n_s, n_a, action_space):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
     def interact(self, s, env):
@@ -103,8 +103,8 @@ class HJB:
 
 
 class HJB_greedy:
-    def create_models(self, lr, n_s, n_a):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, target=True)
+    def create_models(self, lr, n_s, n_a, action_space):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
     def interact(self, s, env):
@@ -146,7 +146,7 @@ def train(algo, env_name, num_timesteps, lr, batch_size, vis_iter, seed=0, log=F
     n_s = env.state_dim()
     n_a = env.action_dim()
     algo = algo()
-    algo.create_models(lr, n_s, n_a)
+    algo.create_models(lr, n_s, n_a, env.action_space)
 
     # create storage and add random transitions to it
     storage = Storage(1e6)
@@ -209,15 +209,15 @@ if __name__ == '__main__':
     # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
 
-    # algos = [DDPG, HJB, HJB_greedy]
-    # groups = ['DDPG', 'HJB', 'HJB-greedy']
-    algos = [HJB]
-    groups = ['HJB-normal']
+
+    env = 'LunarLanderContinuous-v2'
+    algos = [DDPG, HJB, HJB_greedy]
+    groups = ['DDPG', 'HJB', 'HJB-greedy']
 
     for algo, group in zip(algos, groups):
         for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
-            wandb.init(project='Pendulum2', group=group, name=str(seed), reinit=True)
-            train(algo=algo, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+            wandb.init(project=f'HJB-{env}', group=group, name=str(seed), reinit=True)
+            train(algo=algo, env_name=env, num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
             wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:

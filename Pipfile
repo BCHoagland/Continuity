@@ -10,6 +10,7 @@ gym = "*"
 torch = "*"
 visdom = "*"
 wandb = "*"
+box2d-py = "*"
 
 [requires]
 python_version = "3.7"

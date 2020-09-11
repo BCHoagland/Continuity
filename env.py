@@ -11,7 +11,8 @@ device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
 class Env:
     def __init__(self, name, seed):
-        self.env = PendulumEnv()
+        # self.env = PendulumEnv()
+        self.env = gym.make(name)
         self.env.seed(seed)
         self.env.action_space.seed(seed)
 
@@ -31,9 +32,10 @@ class Env:
         return torch.FloatTensor(self.env.reset()).to(device)
 
     def step(self, a):
+        # s, r, done, _ = self.env.step(a)
+        s, r, done, _ = self.env.step(a.cpu().numpy())
         # I use costs instead of rewards
-        # s, c, done, _ = self.env.step(a.cpu().numpy())
-        s, c, done, _ = self.env.step(a)
+        c = -r
         return torch.FloatTensor(s).to(device), torch.FloatTensor([c]).to(device), torch.FloatTensor([done]).to(device)
 
     def __getattr__(self, k):
