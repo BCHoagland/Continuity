@@ -43,9 +43,9 @@ class DDPG:
         self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
-    def interact(self, s, env):
+    def interact(self, s, env, noise):
         a = self.policy(s)
-        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
+        a = (a + torch.randn_like(a) * noise).clamp(env.action_space.low[0], env.action_space.high[0])
         s2, c, done = env.step(a)
         return s, a, c, s2, done
 
@@ -74,10 +74,10 @@ class HJB:
         self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
-    def interact(self, s, env):
+    def interact(self, s, env, noise):
         a = self.policy(s)
+        a = (a + torch.randn_like(a) * noise).clamp(env.action_space.low[0], env.action_space.high[0])
         s2, c, done = env.step(a)
-        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
         return s, a, c, s2, done
 
     def update(self, storage, batch_size):
@@ -107,10 +107,10 @@ class HJB_greedy:
         self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
-    def interact(self, s, env):
+    def interact(self, s, env, noise):
         a = self.policy(s)
+        a = (a + torch.randn_like(a) * noise).clamp(env.action_space.low[0], env.action_space.high[0])
         s2, c, done = env.step(a)
-        a = (a + torch.randn_like(a) * 0.15).clamp(-2., 2.)
         return s, a, c, s2, done
 
     def update(self, storage, batch_size):
@@ -134,7 +134,7 @@ class HJB_greedy:
         self.policy.soft_update_target()
 
 
-def train(algo, env_name, num_timesteps, lr, batch_size, vis_iter, seed=0, log=False):
+def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0, log=False):
     torch.manual_seed(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -163,7 +163,7 @@ def train(algo, env_name, num_timesteps, lr, batch_size, vis_iter, seed=0, log=F
     for step in range(int(num_timesteps)):
         # interact with env
         with torch.no_grad():
-            s, a, c, s2, done = algo.interact(s, env)
+            s, a, c, s2, done = algo.interact(s, env, noise)
         storage.store((s, a, c, s2, done))
 
         # cost bookkeeping
@@ -201,36 +201,35 @@ def train(algo, env_name, num_timesteps, lr, batch_size, vis_iter, seed=0, log=F
 #! TRY LIMITING REPLAY BUFFER
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--algos', type=str, nargs='+')
+    parser.add_argument('--seeds', type=int, nargs='+')
     parser.add_argument('--lr', type=float, default=3e-4)
+    parser.add_argument('--noise', type=float, default=0.15)
     parser.add_argument('--timesteps', type=float, default=3e4)
     parser.add_argument('--batch', type=int, default=128)
     parser.add_argument('--vis_iter', type=int, default=200)
     # parser.add_argument('--actors', type=int, default=8)
-    # parser.add_argument('--noise', type=float, default=0.15)
     args = parser.parse_args()
 
 
-    env = 'LunarLanderContinuous-v2'
-    # algos = [DDPG, HJB, HJB_greedy]
-    # groups = ['DDPG', 'HJB', 'HJB-greedy']
-    algos = [HJB, HJB_greedy]
-    groups = ['HJB', 'HJB-greedy']
+    # seeds: 3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125
 
-    for algo, group in zip(algos, groups):
-        for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
-            wandb.init(project=f'HJB-{env}', group=group, name=str(seed), reinit=True)
-            train(algo=algo, env_name=env, num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+    env = 'LunarLanderContinuous-v2'
+    for seed in args.seeds:
+        for algo in args.algos:
+            wandb.init(project=f'HJB-{env}', group=algo, name=str(seed), reinit=True)
+            train(algo=eval(algo), env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=0, log=True)
             wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
         # wandb.init(project='Pendulum', group='DDPG', name=str(seed), reinit=True)
-        # train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        # train(algo=DDPG, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         # wandb.join()
 
         # wandb.init(project='Pendulum', group='HJB', name=str(seed), reinit=True)
-        # train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        # train(algo=HJB, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         # wandb.join()
 
         # wandb.init(project='Pendulum', group='HJB2', name=str(seed), reinit=True)
-        # train(algo=HJB2, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
+        # train(algo=HJB2, env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=200, seed=seed, log=True)
         # wandb.join()
