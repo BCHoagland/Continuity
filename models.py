@@ -72,10 +72,10 @@ class CategoricalPolicy(nn.Module):
 
 
 class DeterministicPolicy(nn.Module):
-    def __init__(self, n_s, n_a, action_space):
+    def __init__(self, n_s, n_a, action_space, device):
         super().__init__()
 
-        self.high = torch.FloatTensor(action_space.high)
+        self.high = torch.FloatTensor(action_space.high).to(device)
 
         self.main = nn.Sequential(
             nn.Linear(n_s, n_h),

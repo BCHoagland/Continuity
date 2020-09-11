@@ -40,7 +40,7 @@ def explore(timesteps, env, storage):
 
 class DDPG:
     def create_models(self, lr, n_s, n_a, action_space):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, target=True)
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
     def interact(self, s, env):
@@ -71,7 +71,7 @@ class DDPG:
 
 class HJB:
     def create_models(self, lr, n_s, n_a, action_space):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, target=True)
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
     def interact(self, s, env):
@@ -104,7 +104,7 @@ class HJB:
 
 class HJB_greedy:
     def create_models(self, lr, n_s, n_a, action_space):
-        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, target=True)
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
         self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
 
     def interact(self, s, env):
