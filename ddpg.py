@@ -211,8 +211,10 @@ if __name__ == '__main__':
 
 
     env = 'LunarLanderContinuous-v2'
-    algos = [DDPG, HJB, HJB_greedy]
-    groups = ['DDPG', 'HJB', 'HJB-greedy']
+    # algos = [DDPG, HJB, HJB_greedy]
+    # groups = ['DDPG', 'HJB', 'HJB-greedy']
+    algos = [HJB, HJB_greedy]
+    groups = ['HJB', 'HJB-greedy']
 
     for algo, group in zip(algos, groups):
         for seed in [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]:
