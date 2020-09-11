@@ -212,13 +212,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-    # seeds: 3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125
+    # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
 
     env = 'LunarLanderContinuous-v2'
     for seed in args.seeds:
         for algo in args.algos:
             wandb.init(project=f'HJB-{env}', group=algo, name=str(seed), reinit=True)
-            train(algo=eval(algo), env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=0, log=True)
+            train(algo=eval(algo), env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
             wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
