@@ -201,8 +201,9 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
 #! TRY LIMITING REPLAY BUFFER
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--algos', type=str, nargs='+')
-    parser.add_argument('--seeds', type=int, nargs='+')
+    parser.add_argument('--name', type=str, default='')
+    parser.add_argument('--algos', type=str, nargs='+', default=['DDPG', 'HJB', 'HJB_greedy'])
+    parser.add_argument('--seeds', type=int, nargs='+', default=[0])
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--noise', type=float, default=0.15)
     parser.add_argument('--timesteps', type=float, default=3e4)
@@ -213,11 +214,15 @@ if __name__ == '__main__':
 
 
     # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
+    # clear && python ddpg.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
+    # clear && python ddpg.py --name 'no noise' --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --noise 0.15
 
     env = 'LunarLanderContinuous-v2'
+
     for seed in args.seeds:
         for algo in args.algos:
-            wandb.init(project=f'HJB-{env}', group=algo, name=str(seed), reinit=True)
+            group = algo if args.name == '' else f'{algo} ({args.name})'
+            wandb.init(project=f'HJB-{env}', group=group, name=str(seed), reinit=True)
             train(algo=eval(algo), env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
             wandb.join()
 
