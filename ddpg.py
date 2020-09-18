@@ -215,7 +215,7 @@ if __name__ == '__main__':
 
     # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
     # clear && python ddpg.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
-    # clear && python ddpg.py --name 'no noise' --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --noise 0.15
+    # clear && python ddpg.py --name 'no noise' --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --noise 0
 
     env = 'LunarLanderContinuous-v2'
 
@@ -223,7 +223,7 @@ if __name__ == '__main__':
         for algo in args.algos:
             group = algo if args.name == '' else f'{algo} ({args.name})'
             wandb.init(project=f'HJB-{env}', group=group, name=str(seed), reinit=True)
-            train(algo=eval(algo), env_name='Pendulum-v0', num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+            train(algo=eval(algo), env_name=env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
             wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:
