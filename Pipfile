@@ -11,6 +11,7 @@ torch = "*"
 visdom = "*"
 wandb = "*"
 box2d-py = "*"
+pybulletgym = {editable = true, path = "./pybullet-gym"}
 
 [requires]
 python_version = "3.7"

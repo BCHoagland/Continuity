@@ -201,6 +201,7 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
 #! TRY LIMITING REPLAY BUFFER
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--env', type=str, default='Pendulum-v0')
     parser.add_argument('--name', type=str, default='')
     parser.add_argument('--algos', type=str, nargs='+', default=['DDPG', 'HJB', 'HJB_greedy'])
     parser.add_argument('--seeds', type=int, nargs='+', default=[0])
@@ -217,13 +218,11 @@ if __name__ == '__main__':
     # clear && python ddpg.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
     # clear && python ddpg.py --name 'no noise' --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --noise 0
 
-    env = 'LunarLanderContinuous-v2'
-
     for seed in args.seeds:
         for algo in args.algos:
             group = algo if args.name == '' else f'{algo} ({args.name})'
-            wandb.init(project=f'HJB-{env}', group=group, name=str(seed), reinit=True)
-            train(algo=eval(algo), env_name=env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
+            wandb.init(project=f'HJB-{args.env}', group=group, name=str(seed), reinit=True)
+            train(algo=eval(algo), env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True)
             wandb.join()
 
     # for seed in [7329, 9643, 6541, 6563]:

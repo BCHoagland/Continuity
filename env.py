@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 import gym
+import pybulletgym
 from gym import spaces
 from gym.utils import seeding
 
