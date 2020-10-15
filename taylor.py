@@ -62,10 +62,10 @@ class Agent:
             q_target = c + 0.99 * m * self.Q.target(s2, self.policy.target(s2))
             taylor_future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
             taylor_target = c + 0.99 * m * taylor_future
-        squared_error = (q_target - self.Q(s, a)) ** 2
-        taylor_reg = (taylor_target - self.Q(s,a)) ** 2
+        mse = ((q_target - self.Q(s, a)) ** 2).mean()
+        taylor_reg = ((taylor_target - self.Q(s,a)) ** 2).mean()
 
-        q_loss = (squared_error + (self.taylor_coef * taylor_reg)).mean()
+        q_loss = squared_error + (self.taylor_coef * taylor_reg)
         self.Q.minimize(q_loss)
 
         # improve policy
