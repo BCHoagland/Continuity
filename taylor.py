@@ -65,7 +65,7 @@ class Agent:
         mse = ((q_target - self.Q(s, a)) ** 2).mean()
         taylor_reg = ((taylor_target - self.Q(s,a)) ** 2).mean()
 
-        q_loss = squared_error + (self.taylor_coef * taylor_reg)
+        q_loss = mse + (self.taylor_coef * taylor_reg)
         self.Q.minimize(q_loss)
 
         # improve policy
