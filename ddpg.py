@@ -54,7 +54,6 @@ class DDPG:
         m = 1 - done
 
         # improve Q function estimator
-        s_grad, a_grad = batch_grad(self.Q, s, a)
         with torch.no_grad():
             q_target = c + 0.99 * m * self.Q.target(s2, self.policy.target(s2))
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
@@ -123,6 +122,43 @@ class HJB_greedy:
             future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
             q_target = c + self.Q.target(s,a) + m * 0.99 * future
         q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
+        self.Q.minimize(q_loss)
+
+        # improve policy
+        policy_loss = self.Q(s, self.policy(s)).mean()
+        self.policy.minimize(policy_loss)
+
+        # update target networks
+        self.Q.soft_update_target()
+        self.policy.soft_update_target()
+
+
+class Taylor_reg:
+    def create_models(self, lr, n_s, n_a, action_space):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
+        self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
+
+    def interact(self, s, env, noise):
+        a = self.policy(s)
+        a = (a + torch.randn_like(a) * noise).clamp(env.action_space.low[0], env.action_space.high[0])
+        s2, c, done = env.step(a)
+        return s, a, c, s2, done
+
+    def update(self, storage, batch_size):
+        s, a, c, s2, done = storage.sample(batch_size)
+        m = 1 - done
+
+        # improve Q function estimator
+        s_grad, a_grad = batch_grad(self.Q, s, a)
+        with torch.no_grad():
+            q_target = c + 0.99 * m * self.Q.target(s2, self.policy.target(s2))
+            taylor_future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
+            taylor_target = c + self.Q.target(s,a) + m * 0.99 * taylor_future
+
+        mse = ((q_target - self.Q(s, a)) ** 2).mean()
+        taylor_reg = ((taylor_target - self.Q(s,a)) ** 2).mean()
+
+        q_loss = mse + (0.5 * taylor_reg)
         self.Q.minimize(q_loss)
 
         # improve policy
@@ -203,7 +239,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--env', type=str, default='Pendulum-v0')
     parser.add_argument('--name', type=str, default='')
-    parser.add_argument('--algos', type=str, nargs='+', default=['DDPG', 'HJB', 'HJB_greedy'])
+    parser.add_argument('--algos', type=str, nargs='+', default=['DDPG', 'HJB', 'HJB_greedy', 'Taylor_reg'])
     parser.add_argument('--seeds', type=int, nargs='+', default=[0])
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--noise', type=float, default=0.15)
@@ -212,6 +248,9 @@ if __name__ == '__main__':
     parser.add_argument('--vis_iter', type=int, default=200)
     # parser.add_argument('--actors', type=int, default=8)
     args = parser.parse_args()
+
+    train(algo=eval('Taylor_reg'), env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=args.seeds[0], log=False)
+    quit()
 
 
     # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
