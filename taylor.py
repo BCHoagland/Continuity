@@ -151,6 +151,7 @@ if __name__ == '__main__':
     for seed in args.seeds:
         for taylor in args.taylor:
             group = str(taylor) if args.name == '' else f'{taylor} ({args.name})'
-            wandb.init(project=f'Taylor-{args.env}', group=group, name=str(seed), reinit=True)
+            # wandb.init(project=f'Taylor-{args.env}', group=group, name=str(seed), reinit=True)
+            wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', reinit=True)
             train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=taylor)
             wandb.join()
