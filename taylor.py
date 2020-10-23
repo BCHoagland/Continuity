@@ -155,7 +155,7 @@ if __name__ == '__main__':
         # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
         wandb.init(project=f'Taylor-{args.env}', config=hyperparameter_defaults, reinit=True)
         config = wandb.config
-        train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=taylor)
+        train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=config.taylor)
 
     # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
     # clear && python taylor.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --taylor 0 0.1 0.25 0.5 0.75 1
