@@ -145,25 +145,24 @@ if __name__ == '__main__':
     # parser.add_argument('--actors', type=int, default=8)
     args = parser.parse_args()
 
-    hyperparameter_defaults = dict(
-        taylor = 0.1,
-    )
+    # hyperparameter_defaults = dict(
+    #     taylor = 0.1,
+    # )
 
-    seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]
-    for seed in seeds:
-        # taylor = hyperparameter_defaults['taylor']
-        # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
-        wandb.init(project=f'Taylor-{args.env}', config=hyperparameter_defaults, reinit=True)
-        config = wandb.config
-        train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=config.taylor)
+    # seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]
+    # for seed in seeds:
+    #     # taylor = hyperparameter_defaults['taylor']
+    #     # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
+    #     wandb.init(project=f'Taylor-{args.env}', config=hyperparameter_defaults, reinit=True)
+    #     config = wandb.config
+    #     train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=config.taylor)
 
     # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
     # clear && python taylor.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --taylor 0 0.1 0.25 0.5 0.75 1
 
-    # for seed in args.seeds:
-    #     for taylor in args.taylor:
-    #         group = str(taylor) if args.name == '' else f'{taylor} ({args.name})'
-    #         # wandb.init(project=f'Taylor-{args.env}', group=group, name=str(seed), reinit=True)
-    #         wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', reinit=True)
-    #         train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=taylor)
-    #         wandb.join()
+    for seed in args.seeds:
+        for taylor in args.taylor:
+            group = str(taylor) if args.name == '' else f'{taylor} ({args.name})'
+            wandb.init(project=f'Taylor-{args.env}', group=group, name=str(seed), reinit=True)
+            train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=taylor)
+            wandb.join()
