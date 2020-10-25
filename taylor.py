@@ -136,7 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', type=str, default='HumanoidPyBulletEnv-v0')
     parser.add_argument('--name', type=str, default='')
     parser.add_argument('--taylor', type=float, nargs='+', default=[0.5])
-    # parser.add_argument('--seeds', type=int, nargs='+', default=[0])
+    parser.add_argument('--seeds', type=int, nargs='+', default=[0])
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--noise', type=float, default=0.15)
     parser.add_argument('--timesteps', type=float, default=5e5)
