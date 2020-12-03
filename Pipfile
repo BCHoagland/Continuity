@@ -10,8 +10,8 @@ gym = "*"
 torch = "*"
 visdom = "*"
 wandb = "*"
-box2d-py = "*"
 pybulletgym = {editable = true, path = "./pybullet-gym"}
+matplotlib = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.8"

@@ -1,12 +1,12 @@
-import argparse
 import torch
+from torch.autograd import grad
 import wandb
 
 import random
 import numpy as np
 
 from env import Env
-from models import Model, CategoricalPolicy, DeterministicPolicy, RelativePolicy, Value, QNetwork, Dynamics
+from models import Model, DeterministicPolicy, QNetwork
 from storage import Storage
 
 
@@ -56,17 +56,24 @@ class Agent:
         s, a, c, s2, done = storage.sample(batch_size)
         m = 1 - done
 
-        # improve Q function estimator
-        s_grad, a_grad = batch_grad(self.Q, s, a)
         with torch.no_grad():
-            q_target = c + 0.99 * m * self.Q.target(s2, self.policy.target(s2))
-            taylor_future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
-            taylor_target = c + 0.99 * m * taylor_future
-        mse = ((q_target - self.Q(s, a)) ** 2).mean()
-        taylor_reg = ((taylor_target - self.Q(s,a)) ** 2).mean()
-
-        q_loss = mse + (self.taylor_coef * taylor_reg)
+            q_target = c + m * 0.99 * self.Q.target(s2, self.policy.target(s2))
+        q_loss = ((self.Q(s, a) - q_target) ** 2).mean()
         self.Q.minimize(q_loss)
+
+        # improve Q function estimator
+        # s.requires_grad = True
+        # a.requires_grad = True
+
+        # q = self.Q(s, a)
+        # s_grad = grad(q, s, torch.ones(q.shape), create_graph=True)[0]
+        # a_grad = grad(q, a, torch.ones(q.shape), create_graph=True)[0]
+
+        # bruh = c + batch_dot(s2 - s, s_grad) + batch_dot(self.policy.target(s2) - a, a_grad)
+        # # bruh = c + batch_dot(s2 - s, s_grad) + batch_dot(self.policy(s2) - a, a_grad)
+        # #! scaling for c? I'm pretty sure the 'c' I'm using is actually 'δc'...
+        # q_loss = (bruh ** 2).mean()
+        # self.Q.minimize(q_loss)
 
         # improve policy
         policy_loss = self.Q(s, self.policy(s)).mean()
@@ -132,37 +139,4 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='HumanoidPyBulletEnv-v0')
-    parser.add_argument('--name', type=str, default='')
-    parser.add_argument('--taylor', type=float, nargs='+', default=[0.5])
-    parser.add_argument('--seeds', type=int, nargs='+', default=[0])
-    parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--noise', type=float, default=0.15)
-    parser.add_argument('--timesteps', type=float, default=5e5)
-    parser.add_argument('--batch', type=int, default=128)
-    parser.add_argument('--vis_iter', type=int, default=200)
-    # parser.add_argument('--actors', type=int, default=8)
-    args = parser.parse_args()
-
-    hyperparameter_defaults = dict(
-        taylor = 0.1,
-    )
-
-    seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]
-    for seed in seeds:
-        # taylor = hyperparameter_defaults['taylor']
-        # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
-        wandb.init(project=f'Taylor-{args.env}', config=hyperparameter_defaults, reinit=True)
-        config = wandb.config
-        train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=config.taylor)
-
-    # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
-    # clear && python taylor.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --taylor 0 0.1 0.25 0.5 0.75 1
-
-    # for seed in args.seeds:
-    #     for taylor in args.taylor:
-    #         group = str(taylor) if args.name == '' else f'{taylor} ({args.name})'
-    #         wandb.init(project=f'Taylor-{args.env}', group=group, name=str(seed), reinit=True)
-    #         train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=taylor)
-    #         wandb.join()
+    train(algo=Agent, env_name='Pendulum-v0', num_timesteps=1e5, lr=3e-4, noise=0.15, batch_size=128, vis_iter=200, seed=0, log=False)
