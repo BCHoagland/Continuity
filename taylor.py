@@ -145,10 +145,12 @@ if __name__ == '__main__':
     # # parser.add_argument('--actors', type=int, default=8)
     # args = parser.parse_args()
 
+    env = 'InvertedPendulumPyBulletEnv-v0'
+
     hyperparameter_defaults = dict(
-        env = 'InvertedPendulumMuJoCoEnv-v0',
+        env = env,
         # seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125],
-        seeds = [3458]
+        seeds = [3458],
         lr = 3e-4,
         noise = 0.15,
         timesteps = 2e6,
@@ -158,10 +160,10 @@ if __name__ == '__main__':
 
     #! right now the 'Ant' test uses a single seed. All others use multiple seeds
 
-    wandb.init(project=f'Continuity', group=f'{hyperparameter_defaults.env}', config=hyperparameter_defaults)
+    wandb.init(project=f'Continuity', group=f'{env}', config=hyperparameter_defaults)
     config = wandb.config
 
-    for seed in seeds:
+    for seed in config.seeds:
         # taylor = hyperparameter_defaults['taylor']
         # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
         # wandb.init(project=f'Taylor-{args.env}', group=f'{args.env}' config=hyperparameter_defaults, reinit=True)
