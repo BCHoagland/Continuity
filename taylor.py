@@ -133,29 +133,40 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='HumanoidPyBulletEnv-v0')
+    parser.add_argument('--env', type=str, default='InvertedPendulumMuJoCoEnv-v0')
     parser.add_argument('--name', type=str, default='')
     parser.add_argument('--taylor', type=float, nargs='+', default=[0.5])
     parser.add_argument('--seeds', type=int, nargs='+', default=[0])
     parser.add_argument('--lr', type=float, default=3e-4)
     parser.add_argument('--noise', type=float, default=0.15)
-    parser.add_argument('--timesteps', type=float, default=5e5)
+    parser.add_argument('--timesteps', type=float, default=2e6)
     parser.add_argument('--batch', type=int, default=128)
     parser.add_argument('--vis_iter', type=int, default=200)
     # parser.add_argument('--actors', type=int, default=8)
     args = parser.parse_args()
 
     hyperparameter_defaults = dict(
-        taylor = 0.1,
+        env = 'InvertedPendulumMuJoCoEnv-v0',
+        # seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125],
+        seeds = [3458]
+        lr = 3e-4,
+        noise = 0.15,
+        timesteps = 2e6,
+        batch = 128,
+        taylor = 0.1
     )
 
-    seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125]
+    #! right now the 'Ant' test uses a single seed. All others use multiple seeds
+
+    wandb.init(project=f'Continuity', group=f'{args.env}', config=hyperparameter_defaults)
+    config = wandb.config
+
     for seed in seeds:
         # taylor = hyperparameter_defaults['taylor']
         # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
-        wandb.init(project=f'Taylor-{args.env}', config=hyperparameter_defaults, reinit=True)
-        config = wandb.config
-        train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=config.taylor)
+        # wandb.init(project=f'Taylor-{args.env}', group=f'{args.env}' config=hyperparameter_defaults, reinit=True)
+        # config = wandb.config
+        train(algo=Agent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=seed, log=True, taylor_coef=config.taylor)
 
     # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
     # clear && python taylor.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --taylor 0 0.1 0.25 0.5 0.75 1
