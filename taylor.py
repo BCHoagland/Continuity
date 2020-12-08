@@ -132,18 +132,18 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--env', type=str, default='InvertedPendulumMuJoCoEnv-v0')
-    parser.add_argument('--name', type=str, default='')
-    parser.add_argument('--taylor', type=float, nargs='+', default=[0.5])
-    parser.add_argument('--seeds', type=int, nargs='+', default=[0])
-    parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--noise', type=float, default=0.15)
-    parser.add_argument('--timesteps', type=float, default=2e6)
-    parser.add_argument('--batch', type=int, default=128)
-    parser.add_argument('--vis_iter', type=int, default=200)
-    # parser.add_argument('--actors', type=int, default=8)
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--env', type=str, default='InvertedPendulumMuJoCoEnv-v0')
+    # parser.add_argument('--name', type=str, default='')
+    # parser.add_argument('--taylor', type=float, nargs='+', default=[0.5])
+    # parser.add_argument('--seeds', type=int, nargs='+', default=[0])
+    # parser.add_argument('--lr', type=float, default=3e-4)
+    # parser.add_argument('--noise', type=float, default=0.15)
+    # parser.add_argument('--timesteps', type=float, default=2e6)
+    # parser.add_argument('--batch', type=int, default=128)
+    # parser.add_argument('--vis_iter', type=int, default=200)
+    # # parser.add_argument('--actors', type=int, default=8)
+    # args = parser.parse_args()
 
     hyperparameter_defaults = dict(
         env = 'InvertedPendulumMuJoCoEnv-v0',
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
     #! right now the 'Ant' test uses a single seed. All others use multiple seeds
 
-    wandb.init(project=f'Continuity', group=f'{args.env}', config=hyperparameter_defaults)
+    wandb.init(project=f'Continuity', group=f'{hyperparameter_defaults.env}', config=hyperparameter_defaults)
     config = wandb.config
 
     for seed in seeds:
