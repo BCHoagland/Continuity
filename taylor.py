@@ -145,7 +145,7 @@ if __name__ == '__main__':
     # # parser.add_argument('--actors', type=int, default=8)
     # args = parser.parse_args()
 
-    env = 'HalfCheetahPyBulletEnv-v0'
+    env = 'HopperPyBulletEnv-v0'
 
     hyperparameter_defaults = dict(
         env = env,
