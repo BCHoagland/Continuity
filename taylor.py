@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     defaults = dict(
         env = env,
-        seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125],
+        seed = 3458,
         lr = 3e-4,
         noise = 0.15,
         timesteps = 2e6,
@@ -214,21 +214,13 @@ if __name__ == '__main__':
     # wandb.init(project=f'Continuity', group=f'{env}', config=defaults)
     # config = wandb.config
 
-    for seed in defaults['seeds']:
-        # wandb.init(project=f'Continuity', group=f'{env}', name=f'{seed}-{taylor}', config=defaults, reinit=True)
-        wandb.init(project=f'HJB-Bonanza', group=f'{env}', name=f'{seed}', config=defaults, reinit=True)
-        config = wandb.config
-        train(algo=Agent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=seed, log=True, taylor_coef=config.taylor)
+    # * for taylor_coef sweeps
+    # for seed in defaults['seed']:
+    #     wandb.init(project=f'Continuity', group=f'{env}', name=f'{seed}-{taylor}', config=defaults, reinit=True)
+    #     config = wandb.config
+    #     train(algo=Agent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=seed, log=True, taylor_coef=config.taylor)
 
-        # train(
-        #     algo=hjbAgent,
-        #     env_name=defaults['env'],
-        #     num_timesteps=defaults['timesteps'],
-        #     lr=defaults['lr'],
-        #     noise=defaults['noise'],
-        #     batch_size=defaults['batch'],
-        #     vis_iter=200,
-        #     seed=seed,
-        #     log=False,
-        #     taylor_coef=defaults['taylor']
-        # )
+    # * for seed sweeps
+    wandb.init(project=f'HJB-Bonanza', group=f'{env}', name=f'{defaults["seed"]}', config=defaults)
+    config = wandb.config
+    train(algo=hjbAgent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=config.seed, log=True, taylor_coef=config.taylor)

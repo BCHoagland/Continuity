@@ -4,7 +4,7 @@ metric:
   name: Average episodic cost
   goal: minimize
 parameters:
-  seeds:
+  seed:
     values:
       - 3458
       - 628
