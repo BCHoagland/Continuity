@@ -1,4 +1,3 @@
-import argparse
 import torch
 import wandb
 
@@ -77,6 +76,77 @@ class Agent:
         self.policy.soft_update_target()
 
 
+class hjbAgent:
+    def __init__(self, taylor_coef):
+        pass
+
+    def create_models(self, lr, n_s, n_a, action_space):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
+        self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
+
+    def interact(self, s, env, noise):
+        a = self.policy(s)
+        a = (a + torch.randn_like(a) * noise).clamp(env.action_space.low[0], env.action_space.high[0])
+        s2, c, done = env.step(a)
+        return s, a, c, s2, done
+
+    def update(self, storage, batch_size):
+        s, a, c, s2, done = storage.sample(batch_size)
+        m = 1 - done
+
+        # improve Q function estimator
+        s_grad, a_grad = batch_grad(self.Q.target, s, a)
+        with torch.no_grad():
+            # future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-self.policy.target(s), a_grad)
+            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
+            q_target = c + self.Q.target(s,a) + m * 0.99 * future
+        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
+        self.Q.minimize(q_loss)
+
+        # improve policy
+        policy_loss = self.Q(s, self.policy(s)).mean()
+        self.policy.minimize(policy_loss)
+
+        # update target networks
+        self.Q.soft_update_target()
+        self.policy.soft_update_target()
+
+
+class hjbGreedyAgent:
+    def __init__(self, taylor_coef):
+        pass
+
+    def create_models(self, lr, n_s, n_a, action_space):
+        self.policy = Model(DeterministicPolicy, lr, n_s, n_a, action_space, device, target=True)
+        self.Q = Model(QNetwork, lr, n_s, n_a, target=True)
+
+    def interact(self, s, env, noise):
+        a = self.policy(s)
+        a = (a + torch.randn_like(a) * noise).clamp(env.action_space.low[0], env.action_space.high[0])
+        s2, c, done = env.step(a)
+        return s, a, c, s2, done
+
+    def update(self, storage, batch_size):
+        s, a, c, s2, done = storage.sample(batch_size)
+        m = 1 - done
+
+        # improve Q function estimator
+        s_grad, a_grad = batch_grad(self.Q, s, a)
+        with torch.no_grad():
+            future = batch_dot(s2-s, s_grad) + batch_dot(self.policy.target(s2)-a, a_grad)
+            q_target = c + self.Q.target(s,a) + m * 0.99 * future
+        q_loss = ((q_target - self.Q(s, a)) ** 2).mean()
+        self.Q.minimize(q_loss)
+
+        # improve policy
+        policy_loss = self.Q(s, self.policy(s)).mean()
+        self.policy.minimize(policy_loss)
+
+        # update target networks
+        self.Q.soft_update_target()
+        self.policy.soft_update_target()
+
+
 def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0, log=False, taylor_coef=0.5):
     torch.manual_seed(seed)
     random.seed(seed)
@@ -94,9 +164,6 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
     # create storage and add random transitions to it
     storage = Storage(1e6)
     explore(10000, env, storage)
-
-    if not log:
-        from visualize import plot_live
 
     # training loop
     last_ep_cost = 0
@@ -128,29 +195,15 @@ def train(algo, env_name, num_timesteps, lr, noise, batch_size, vis_iter, seed=0
             if log:
                 wandb.log({'Average episodic cost': last_ep_cost}, step=step)
             else:
-                plot_live(step, last_ep_cost)
+                print(f'Step: {step} | Cost: {last_ep_cost}')
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--env', type=str, default='InvertedPendulumMuJoCoEnv-v0')
-    # parser.add_argument('--name', type=str, default='')
-    # parser.add_argument('--taylor', type=float, nargs='+', default=[0.5])
-    # parser.add_argument('--seeds', type=int, nargs='+', default=[0])
-    # parser.add_argument('--lr', type=float, default=3e-4)
-    # parser.add_argument('--noise', type=float, default=0.15)
-    # parser.add_argument('--timesteps', type=float, default=2e6)
-    # parser.add_argument('--batch', type=int, default=128)
-    # parser.add_argument('--vis_iter', type=int, default=200)
-    # # parser.add_argument('--actors', type=int, default=8)
-    # args = parser.parse_args()
-
     env = 'HopperPyBulletEnv-v0'
 
-    hyperparameter_defaults = dict(
+    defaults = dict(
         env = env,
-        # seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125],
-        seeds = [3458],
+        seeds = [3458, 628, 2244, 9576, 7989, 358, 6550, 1951, 2834, 5893, 6873, 9669, 7344, 6462, 8211, 7376, 9220, 7999, 7991, 2125],
         lr = 3e-4,
         noise = 0.15,
         timesteps = 2e6,
@@ -158,24 +211,24 @@ if __name__ == '__main__':
         taylor = 0.1
     )
 
-    #! right now the 'Ant' test uses a single seed. All others use multiple seeds
+    # wandb.init(project=f'Continuity', group=f'{env}', config=defaults)
+    # config = wandb.config
 
-    wandb.init(project=f'Continuity', group=f'{env}', config=hyperparameter_defaults)
-    config = wandb.config
-
-    for seed in config.seeds:
-        # taylor = hyperparameter_defaults['taylor']
-        # wandb.init(project=f'Taylor-{args.env}', name=f'{seed}-{taylor}', config=hyperparameter_defaults, reinit=True)
-        # wandb.init(project=f'Taylor-{args.env}', group=f'{args.env}' config=hyperparameter_defaults, reinit=True)
-        # config = wandb.config
+    for seed in defaults['seeds']:
+        # wandb.init(project=f'Continuity', group=f'{env}', name=f'{seed}-{taylor}', config=defaults, reinit=True)
+        wandb.init(project=f'HJB-Bonanza', group=f'{env}', name=f'{seed}', config=defaults, reinit=True)
+        config = wandb.config
         train(algo=Agent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=seed, log=True, taylor_coef=config.taylor)
 
-    # seeds: 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125
-    # clear && python taylor.py --seeds 3458 628 2244 9576 7989 358 6550 1951 2834 5893 6873 9669 7344 6462 8211 7376 9220 7999 7991 2125 --taylor 0 0.1 0.25 0.5 0.75 1
-
-    # for seed in args.seeds:
-    #     for taylor in args.taylor:
-    #         group = str(taylor) if args.name == '' else f'{taylor} ({args.name})'
-    #         wandb.init(project=f'Taylor-{args.env}', group=group, name=str(seed), reinit=True)
-    #         train(algo=Agent, env_name=args.env, num_timesteps=args.timesteps, lr=args.lr, noise=args.noise, batch_size=args.batch, vis_iter=args.vis_iter, seed=seed, log=True, taylor_coef=taylor)
-    #         wandb.join()
+        # train(
+        #     algo=hjbAgent,
+        #     env_name=defaults['env'],
+        #     num_timesteps=defaults['timesteps'],
+        #     lr=defaults['lr'],
+        #     noise=defaults['noise'],
+        #     batch_size=defaults['batch'],
+        #     vis_iter=200,
+        #     seed=seed,
+        #     log=False,
+        #     taylor_coef=defaults['taylor']
+        # )
