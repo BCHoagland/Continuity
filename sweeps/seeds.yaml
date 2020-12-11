@@ -1,0 +1,28 @@
+program: taylor.py
+method: grid
+metric:
+  name: Average episodic cost
+  goal: minimize
+parameters:
+  seeds:
+    values:
+      - 3458
+      - 628
+      - 2244
+      - 9576
+      - 7989
+      - 358
+      - 6550
+      - 1951
+      - 2834
+      - 5893
+      - 6873
+      - 9669
+      - 7344
+      - 6462
+      - 8211
+      - 7376
+      - 9220
+      - 7999
+      - 7991
+      - 2125
