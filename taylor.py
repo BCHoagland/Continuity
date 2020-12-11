@@ -221,6 +221,8 @@ if __name__ == '__main__':
     #     train(algo=Agent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=seed, log=True, taylor_coef=config.taylor)
 
     # * for seed sweeps
-    wandb.init(project=f'HJB-Bonanza', group=f'{env}', name=f'{defaults["seed"]}', config=defaults)
+    wandb.init(project=f'HJB-Greedy-Party', group=f'{env}', config=defaults)
     config = wandb.config
-    train(algo=hjbAgent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=config.seed, log=True, taylor_coef=config.taylor)
+    train(algo=hjbGreedyAgent, env_name=config.env, num_timesteps=config.timesteps, lr=config.lr, noise=config.noise, batch_size=config.batch, vis_iter=200, seed=config.seed, log=True, taylor_coef=config.taylor)
+
+    # ! currently using greedy^
